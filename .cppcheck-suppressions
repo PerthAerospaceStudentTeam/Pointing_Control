@@ -1,0 +1,6 @@
+# .cppcheck-suppressions
+# Format: error_id:filename:line  OR just error_id to suppress globally
+#
+# Examples (uncomment to activate):
+# missingIncludeSystem   -- suppress missing system headers
+# unusedFunction         -- suppress if you have many standalone utility files

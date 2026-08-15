@@ -1,0 +1,127 @@
+name: Lint & Code Review
+
+on:
+  pull_request:
+    branches:
+      - development
+
+# --- FEATURE FLAGS ---
+# Set any of these to "false" to disable that linter for this repo.
+env:
+  ENABLE_RUFF: "true"
+  ENABLE_MYPY: "true"
+  ENABLE_CLANG_FORMAT: "true"
+  ENABLE_CPPCHECK: "true"
+  ENABLE_MARKDOWNLINT: "true"
+
+jobs:
+  # -------------------------------------------------------
+  # Python: Ruff (lint + format check)
+  # -------------------------------------------------------
+  lint-python-ruff:
+    name: Ruff (Python lint + format)
+    runs-on: ubuntu-latest
+    if: ${{ env.ENABLE_RUFF == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Ruff
+        run: pip install ruff
+
+      - name: Ruff lint (with inline PR annotations)
+        run: ruff check . --output-format=github
+
+      - name: Ruff format check
+        run: ruff format --check .
+
+  # -------------------------------------------------------
+  # Python: mypy (static type checking)
+  # -------------------------------------------------------
+  lint-python-mypy:
+    name: mypy (Python types)
+    runs-on: ubuntu-latest
+    if: ${{ env.ENABLE_MYPY == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install mypy
+        run: pip install mypy
+
+      - name: Install project dependencies (if requirements.txt exists)
+        run: |
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+
+      - name: Run mypy
+        run: mypy . --ignore-missing-imports --no-error-summary
+
+  # -------------------------------------------------------
+  # C/C++: clang-format (style enforcement)
+  # -------------------------------------------------------
+  lint-cpp-format:
+    name: clang-format (C/C++ style)
+    runs-on: ubuntu-latest
+    if: ${{ env.ENABLE_CLANG_FORMAT == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install clang-format
+        run: sudo apt-get install -y clang-format
+
+      - name: Check C/C++ formatting
+        run: |
+          FILES=$(find . -name "*.cpp" -o -name "*.cc" -o -name "*.c" -o -name "*.h" -o -name "*.hpp" 2>/dev/null)
+          if [ -z "$FILES" ]; then
+            echo "No C/C++ files found, skipping."
+            exit 0
+          fi
+          echo "$FILES" | xargs clang-format --dry-run --Werror
+
+  # -------------------------------------------------------
+  # C/C++: cppcheck (static analysis)
+  # -------------------------------------------------------
+  lint-cpp-cppcheck:
+    name: cppcheck (C/C++ analysis)
+    runs-on: ubuntu-latest
+    if: ${{ env.ENABLE_CPPCHECK == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install cppcheck
+        run: sudo apt-get install -y cppcheck
+
+      - name: Run cppcheck
+        run: |
+          SUPPRESS=""
+          if [ -f .cppcheck-suppressions ]; then
+            SUPPRESS="--suppressions-list=.cppcheck-suppressions"
+          fi
+          cppcheck \
+            --error-exitcode=1 \
+            --enable=warning,style,performance \
+            --inline-suppr \
+            $SUPPRESS \
+            .
+
+  # -------------------------------------------------------
+  # Markdown: markdownlint
+  # -------------------------------------------------------
+  lint-markdown:
+    name: markdownlint
+    runs-on: ubuntu-latest
+    if: ${{ env.ENABLE_MARKDOWNLINT == 'true' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run markdownlint
+        uses: DavidAnson/markdownlint-cli2-action@v16
+        with:
+          globs: "**/*.md"
+          config: ".markdownlint.yml"

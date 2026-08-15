@@ -1,0 +1,12 @@
+# markdownlint configuration
+# https://github.com/DavidAnson/markdownlint/blob/main/doc/Rules.md
+
+default: true
+
+MD013:
+  line_length: 120     # allow longer lines in docs
+  tables: false        # don't enforce line length inside tables
+  code_blocks: false   # don't enforce inside code blocks
+
+MD033: false           # allow inline HTML (useful for shields/badges)
+MD041: false           # don't require H1 at top (some docs start with a badge row)
