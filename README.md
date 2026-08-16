@@ -1,2 +1,5 @@
-# template-repository
-This repository acts as a base for all future Perth Aerospace Student Team repositories.
+# README for Pointing Control Repository
+## Current File
+README - README file for Pointing Control
+## Scripts
+

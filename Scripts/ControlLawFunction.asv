@@ -1,0 +1,57 @@
+% Control Law
+
+
+% Creating control input function
+classdef ControlLawFunction
+    methods(Static)
+                
+        function u = control_input(q, qdot, qv, w, x1, y1, theta_sun, x2, y2, ...
+            theta_ant, J, a2, a3, b2, b3, e0, K21, K22, k31, k32)
+            % These control the repulsion and attraction to forbidden and mandatory
+            % zones respectfully (11 forbidden, 2 mandatory)
+            M11 = Calc_M(x1, y1, theta_sun);
+            M2 = Calc_M(x2, y2, theta_ant);
+            [psi1, psi2] = Calc_psi(M11, M2, q);
+        
+            % Potentials
+            Va = Calc_Va(q, qd);
+            Vr = Calc_Vr(varpho11, varpho2, psi1, psi2, delta);
+            Vp = Calc_Vp(Va, Vr);
+        
+            % Gradient of Potentials
+            dVr = Calc_dVr(q, varpho11, varpho2, psi1, psi2, delta, M11, M2);
+            dVp = Calc_dVp(Vr, Va, dVr, q, qd);
+        
+            % Laplacian of Potential
+            ddVp = Calc_ddVp(q, qd, varpho11, varpho2, psi1, psi2, delta, M11, M2);
+            
+        
+            P = Calc_P(Vr, dVr, q, qd);
+            G = Calc_G(P, w, qv);
+            E = Calc_E(P, qv);
+        
+            % Time Derivative of Potentials
+            Vpdot = Calc_Vpdot(dVp, E, w);
+            Vrdot = Calc_Vrdot(dVr, E, w);
+        
+            wtilda = Calc_wtilda(dVp);
+            wtildadot = Calc_wtildadot(ddVp, E, w);
+            fS = Calc_fS(S);
+            dtilda = Calc_dtilda(E, J, dbar);
+            
+            alpha = Calc_alpha(k31, k32, a3, b3, Vp);
+            beta = Calc_beta(wtilda, e0, alpha, qdot);
+            S = Calc_S(qdot, alpha, beta);
+            alphadot = Calc_alphadot(a3, b3, k31, k32, Vp, Vpdot);
+            betadot = Calc_betadot(wtilda, wtildadot, e0, S);
+        
+            % E^+=Einv which is the generalised inverse of E
+            Einv = pinv(E); %Checked
+        
+            u = cross(w, J*w) + J*Einv*(0.5*G*w - (Vrdot/Vr)*S +2*alphadot*beta + ...
+                2*alpha*betadot-2*( Vr^((a2-1)/2)*K21*sig(S, a2) +  ...
+                Vr^((b2-1)/2)*K22*sig(S, b2) ) + dtilda*fS); %Checked
+            
+        end
+    end
+end
